@@ -2,6 +2,7 @@ using System.Runtime.InteropServices.ComTypes;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using WebApiQuiz.Models;
+using WebApiQuiz.Models.Options;
 
 namespace WebApiQuiz.Services.Db;
 
@@ -11,7 +12,7 @@ public class DbService
 
     private readonly IMongoDatabase _database;
 
-    public DbService(IOptions<DbConfig> config)
+    public DbService(IOptions<DbOptions> config)
     {
         _client = new MongoClient(config.Value.ConnectionString);
         _database = _client.GetDatabase(config.Value.Database);
@@ -55,9 +56,44 @@ public class DbService
 
     public void AddQuiz(Quiz quiz)
     {
-        Console.WriteLine(quiz.Id);
         _database.GetCollection<Quiz>("Quizzes")
             .InsertOne(quiz);
+    }
+    
+    public bool DeleteQuiz(string id)
+    {
+        return _database.GetCollection<Quiz>("Quizzes")
+            .DeleteOne(x => x.Id == id).DeletedCount > 0;
+    }
+    
+    public User? GetUserByEmail(string email)
+    {
+        return _database.GetCollection<User>("Users")
+            .Find(x => x.Email == email)
+            .FirstOrDefault();
+    }
+    
+    public bool AddUser(User user)
+    {
+        if (GetUserByEmail(user.Email) is null)
+        {
+            _database.GetCollection<User>("Users")
+                .InsertOne(user);
+            return true;
+        }
+        return false;
+    }
+
+    public bool LoginUser(User userData)
+    {
+        var user = GetUserByEmail(userData.Email);
+        
+        if (user is not null && user.Password == userData.Password)
+        {
+            return true;
+        }
+
+        return false;
     }
     
 }

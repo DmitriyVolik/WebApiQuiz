@@ -54,6 +54,24 @@ public class QuizController : ControllerBase
         return Ok(QuizToDto(newQuiz));
     }
 
+    [HttpDelete("{id}")]
+    public IActionResult DeleteQuiz(string id)
+    {
+        try
+        {
+            if (!_dbService.DeleteQuiz(id))
+            {
+                return NotFound();
+            }
+        }
+        catch (Exception e)
+        {
+            return BadRequest("Id is incorrect");
+        }
+        
+        return Ok();
+    }
+
     [HttpPost("{id}/Solve")]
     public IActionResult Solve(string id, int[] answer)
     {

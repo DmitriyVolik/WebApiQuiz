@@ -1,6 +1,6 @@
-namespace WebApiQuiz.Services.Db;
+namespace WebApiQuiz.Models.Options;
 
-public class DbConfig
+public class DbOptions
 {
     public string ConnectionString { get; set; }
     
