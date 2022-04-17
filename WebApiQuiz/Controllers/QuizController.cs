@@ -1,45 +1,37 @@
 using Microsoft.AspNetCore.Mvc;
 using WebApiQuiz.Models;
 using WebApiQuiz.Models.DTO;
+using WebApiQuiz.Services.Db;
 
 namespace WebApiQuiz.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("Quizzes")]
 public class QuizController : ControllerBase
 {
-    private static readonly List<Quiz> Quizzes = new List<Quiz>
-    {
-        new()
-        {
-            Id = 1,
-            Title = "The Java Logo",
-            Text = "What is depicted on the Java logo?",
-            Options = new List<string> {"Robot", "Tea leaf", "Cup of coffee", "Bug"},
-            Answers = new List<int> {2}
-        },
-        new()
-        {
-            Id = 2,
-            Title = "The Ultimate Question",
-            Text = "What is the answer to the Ultimate Question of Life, the Universe and Everything?",
-            Options = new List<string> {"Everything goes right","42","2+2=4","11011100"},
-            Answers = new List<int> {3,4}
-        }
-    };
-
     private readonly ILogger<QuizController> _logger;
-
-    public QuizController(ILogger<QuizController> logger)
+    
+    private readonly DbService _dbService;
+    
+    public QuizController(ILogger<QuizController> logger, DbService dbService)
     {
         _logger = logger;
+        _dbService = dbService;
     }
     
     [HttpGet("{id}")]
-    public IActionResult GetQuizById(int id)
+    public IActionResult GetQuizById(string id)
     {
-        var quiz = Quizzes.FirstOrDefault(x => x.Id == id);
-
+        Quiz? quiz;
+        try
+        {
+            quiz = _dbService.GetQuizById(id);
+        }
+        catch (Exception e)
+        {
+            return BadRequest("Id is incorrect");
+        }
+        
         if (quiz is null)
         {
             return NotFound();
@@ -49,16 +41,24 @@ public class QuizController : ControllerBase
     }
     
     [HttpGet]
-    public IEnumerable<QuizDTO> GetQuizzes()
+    public IEnumerable<QuizDto> GetQuizzes()
     {
-        return Quizzes.Select(QuizToDto);
+        return _dbService.GetAllQuizzes().Select(QuizToDto);
+    }
+    
+    [HttpPost]
+    public IActionResult CreateQuiz(Quiz newQuiz)
+    {
+        _dbService.AddQuiz(newQuiz);
+        
+        return Ok(QuizToDto(newQuiz));
     }
 
     [HttpPost("{id}/Solve")]
-    public IActionResult Solve(int id, int[] answer)
+    public IActionResult Solve(string id, int[] answer)
     {
-        var quiz = Quizzes.FirstOrDefault(x=>x.Id == id);
-
+        var quiz = _dbService.GetQuizById(id);
+    
         if (quiz == null)
         {
             return NotFound();
@@ -74,7 +74,7 @@ public class QuizController : ControllerBase
                 break;
             }
         }
-
+    
         object response;
         if (correct)
         {
@@ -95,9 +95,9 @@ public class QuizController : ControllerBase
         return Ok(response);
     }
     
-    private static QuizDTO QuizToDto(Quiz quiz)
+    private static QuizDto QuizToDto(Quiz? quiz)
     {
-        return new QuizDTO
+        return new QuizDto
         {
             Id = quiz.Id,
             Title = quiz.Title,

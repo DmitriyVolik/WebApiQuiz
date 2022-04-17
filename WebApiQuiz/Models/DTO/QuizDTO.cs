@@ -1,8 +1,10 @@
+using MongoDB.Bson;
+
 namespace WebApiQuiz.Models.DTO;
 
-public class QuizDTO
+public class QuizDto
 {
-    public int Id { get; set; }
+    public string Id { get; set; }
     
     public string Title { get; set; }
     
