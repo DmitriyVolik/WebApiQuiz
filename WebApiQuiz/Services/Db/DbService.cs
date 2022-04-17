@@ -19,7 +19,6 @@ public class DbService
 
         if (!_database.ListCollections().Any())
         {
-            var collection = _database.GetCollection<Quiz>("Quizzes");
             List<Quiz> quizzesSeed = new List<Quiz>
             {
                 new()
@@ -37,7 +36,15 @@ public class DbService
                     Answers = new List<int> {3, 4}
                 }
             };
-            collection.InsertMany(quizzesSeed);
+            
+            var userSeed = new User()
+            {
+                Email = "user@example.com",
+                Password = BCrypt.Net.BCrypt.HashPassword("Passw0rd%")
+            };
+            
+            _database.GetCollection<Quiz>("Quizzes").InsertMany(quizzesSeed);
+            _database.GetCollection<User>("Users").InsertOne(userSeed);
         }
     }
 
@@ -60,10 +67,10 @@ public class DbService
             .InsertOne(quiz);
     }
     
-    public bool DeleteQuiz(string id)
+    public void DeleteQuiz(string id)
     {
-        return _database.GetCollection<Quiz>("Quizzes")
-            .DeleteOne(x => x.Id == id).DeletedCount > 0;
+        _database.GetCollection<Quiz>("Quizzes")
+            .DeleteOne(x => x.Id == id);
     }
     
     public User? GetUserByEmail(string email)
@@ -77,6 +84,7 @@ public class DbService
     {
         if (GetUserByEmail(user.Email) is null)
         {
+            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
             _database.GetCollection<User>("Users")
                 .InsertOne(user);
             return true;
@@ -87,13 +95,10 @@ public class DbService
     public bool LoginUser(User userData)
     {
         var user = GetUserByEmail(userData.Email);
+        if (user is null) return false;
+        userData.Id = user.Id;
         
-        if (user is not null && user.Password == userData.Password)
-        {
-            return true;
-        }
-
-        return false;
+        return BCrypt.Net.BCrypt.Verify(userData.Password, user.Password);
     }
     
 }

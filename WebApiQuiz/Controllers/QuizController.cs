@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApiQuiz.Models;
 using WebApiQuiz.Models.DTO;
@@ -47,32 +49,45 @@ public class QuizController : ControllerBase
     }
     
     [HttpPost]
+    [Authorize]
     public IActionResult CreateQuiz(Quiz newQuiz)
     {
+        newQuiz.UserId = User.FindFirst(ClaimTypes.Sid).Value;
         _dbService.AddQuiz(newQuiz);
-        
+
         return Ok(QuizToDto(newQuiz));
     }
 
     [HttpDelete("{id}")]
+    [Authorize]
     public IActionResult DeleteQuiz(string id)
     {
         try
         {
-            if (!_dbService.DeleteQuiz(id))
+            var quiz = _dbService.GetQuizById(id);
+            
+            if (quiz is null)
             {
                 return NotFound();
             }
+
+            if (quiz.UserId == User.FindFirst(ClaimTypes.Sid).Value)
+            {
+                _dbService.DeleteQuiz(id);
+                return Ok();
+            }
+            
         }
         catch (Exception e)
         {
             return BadRequest("Id is incorrect");
         }
-        
-        return Ok();
+
+        return StatusCode(401);
     }
 
     [HttpPost("{id}/Solve")]
+    [Authorize]
     public IActionResult Solve(string id, int[] answer)
     {
         var quiz = _dbService.GetQuizById(id);

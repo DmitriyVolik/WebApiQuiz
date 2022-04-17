@@ -33,16 +33,25 @@ public class UserController : ControllerBase
         return Conflict("User is already exists");
     }
 
-    [HttpPost("login/{id}")]
-    public IActionResult LoginUser(string id, User user)
+    [HttpPost("login")]
+    public IActionResult LoginUser(User user)
     {
+        if (!_dbService.LoginUser(user))
+        {
+            return Unauthorized("Incorrect email or password");
+        }
         
-        var claims = new List<Claim> {new Claim(ClaimTypes.Email, user.Email) };
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Sid, user.Id),
+            new Claim(ClaimTypes.Email, user.Email)
+        };
+        
         var jwt = new JwtSecurityToken(
             issuer: AuthOptions.ISSUER,
             audience: AuthOptions.AUDIENCE,
             claims: claims,
-            expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(2)), // время действия 2 минуты
+            expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(5)), // время действия 2 минуты
             signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
             
         return Ok(new JwtSecurityTokenHandler().WriteToken(jwt));
