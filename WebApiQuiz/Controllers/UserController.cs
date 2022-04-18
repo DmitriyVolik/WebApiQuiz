@@ -46,15 +46,21 @@ public class UserController : ControllerBase
             new Claim(ClaimTypes.Sid, user.Id),
             new Claim(ClaimTypes.Email, user.Email)
         };
-        
+
         var jwt = new JwtSecurityToken(
             issuer: AuthOptions.ISSUER,
             audience: AuthOptions.AUDIENCE,
             claims: claims,
-            expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(5)), // время действия 2 минуты
+            expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(5)), // время действия 5 минут
             signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
             
-        return Ok(new JwtSecurityTokenHandler().WriteToken(jwt));
+        var response = new
+        {
+            access_token = new JwtSecurityTokenHandler().WriteToken(jwt),
+            userEmail = user.Email
+        };
+
+        return Ok(response);
     }
 
 }
